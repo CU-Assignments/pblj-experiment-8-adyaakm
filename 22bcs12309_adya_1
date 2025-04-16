@@ -1,0 +1,105 @@
+import java.sql.*;
+ import java.util.*;
+ 
+ public class ProductCRUD {
+     static final String DB_URL = "jdbc:mysql://localhost:3306/your_database";
+     static final String USER = "your_username";
+     static final String PASS = "your_password";
+ 
+     public static void main(String[] args) {
+         Scanner sc = new Scanner(System.in);
+         try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS)) {
+             conn.setAutoCommit(false);
+             while (true) {
+                 System.out.println("\n1. Create\n2. Read\n3. Update\n4. Delete\n5. Exit");
+                 System.out.print("Enter choice: ");
+                 int choice = sc.nextInt();
+                 switch (choice) {
+                     case 1 -> createProduct(conn, sc);
+                     case 2 -> readProducts(conn);
+                     case 3 -> updateProduct(conn, sc);
+                     case 4 -> deleteProduct(conn, sc);
+                     case 5 -> {
+                         conn.close();
+                         return;
+                     }
+                     default -> System.out.println("Invalid choice!");
+                 }
+             }
+         } catch (SQLException e) {
+             e.printStackTrace();
+         }
+     }
+ 
+     static void createProduct(Connection conn, Scanner sc) throws SQLException {
+         System.out.print("ProductID: ");
+         int id = sc.nextInt();
+         System.out.print("ProductName: ");
+         String name = sc.next();
+         System.out.print("Price: ");
+         double price = sc.nextDouble();
+         System.out.print("Quantity: ");
+         int qty = sc.nextInt();
+ 
+         try (PreparedStatement ps = conn.prepareStatement("INSERT INTO Product VALUES (?, ?, ?, ?)")) {
+             ps.setInt(1, id);
+             ps.setString(2, name);
+             ps.setDouble(3, price);
+             ps.setInt(4, qty);
+             ps.executeUpdate();
+             conn.commit();
+             System.out.println("Product added.");
+         } catch (SQLException e) {
+             conn.rollback();
+             System.out.println("Error occurred. Transaction rolled back.");
+         }
+     }
+ 
+     static void readProducts(Connection conn) throws SQLException {
+         try (Statement stmt = conn.createStatement();
+              ResultSet rs = stmt.executeQuery("SELECT * FROM Product")) {
+             while (rs.next()) {
+                 System.out.println("ID: " + rs.getInt("ProductID") +
+                                    ", Name: " + rs.getString("ProductName") +
+                                    ", Price: " + rs.getDouble("Price") +
+                                    ", Quantity: " + rs.getInt("Quantity"));
+             }
+         }
+     }
+ 
+     static void updateProduct(Connection conn, Scanner sc) throws SQLException {
+         System.out.print("Enter ProductID to update: ");
+         int id = sc.nextInt();
+         System.out.print("New Price: ");
+         double price = sc.nextDouble();
+         System.out.print("New Quantity: ");
+         int qty = sc.nextInt();
+ 
+         try (PreparedStatement ps = conn.prepareStatement(
+                 "UPDATE Product SET Price=?, Quantity=? WHERE ProductID=?")) {
+             ps.setDouble(1, price);
+             ps.setInt(2, qty);
+             ps.setInt(3, id);
+             ps.executeUpdate();
+             conn.commit();
+             System.out.println("Product updated.");
+         } catch (SQLException e) {
+             conn.rollback();
+             System.out.println("Update failed. Rolled back.");
+         }
+     }
+ 
+     static void deleteProduct(Connection conn, Scanner sc) throws SQLException {
+         System.out.print("Enter ProductID to delete: ");
+         int id = sc.nextInt();
+         try (PreparedStatement ps = conn.prepareStatement("DELETE FROM Product WHERE ProductID=?")) {
+             ps.setInt(1, id);
+             ps.executeUpdate();
+             conn.commit();
+             System.out.println("Product deleted.");
+         } catch (SQLException e) {
+             conn.rollback();
+             System.out.println("Deletion failed. Rolled back.");
+         }
+     }
+ }
